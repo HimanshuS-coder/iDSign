@@ -1,11 +1,13 @@
 package com.example.idsign.Utilities;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -13,6 +15,9 @@ import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfReader;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -124,53 +129,106 @@ public class Utils {
         return cipher.doFinal(encryptedData);
     }
 
-    // Method to return Absolute path of the document from URI
-    public static String getPathFromUri(Context context, Uri uri) {
-        String path = null;
+//    // Method to return Absolute path of the document from URI
+//    public static String getPathFromUri(Context context, Uri uri) {
+//        String path = null;
+//
+//        // Check if the URI is a content URI
+//        if ("content".equalsIgnoreCase(uri.getScheme())) {
+//            if (DocumentsContract.isDocumentUri(context, uri)) {
+//                // Handle document URIs
+//                String documentId = DocumentsContract.getDocumentId(uri);
+//                if (documentId.startsWith("raw:")) {
+//                    path = documentId.replaceFirst("raw:", "");
+//                } else {
+//                    String[] split = documentId.split(":");
+//                    String type = split[0];
+//                    if ("primary".equalsIgnoreCase(type)) {
+//                        // Primary storage
+//                        path = Environment.getExternalStorageDirectory() + "/" + split[1];
+//                    } else {
+//                        // Handle other types if necessary
+//                        path = getFilePathFromContentUri(context, uri);
+//                    }
+//                }
+//            } else {
+//                // For other content URIs
+//                path = getFilePathFromContentUri(context, uri);
+//            }
+//        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
+//            // Direct file URI
+//            path = uri.getPath();
+//        }
+//        return path;
+//    }
+//
+//    private static String getFilePathFromContentUri(Context context, Uri uri) {
+//        String[] projection = {MediaStore.Files.FileColumns.DATA};
+//        Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
+//        if (cursor != null) {
+//            try {
+//                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA);
+//                if (cursor.moveToFirst()) {
+//                    return cursor.getString(columnIndex);
+//                }
+//            } finally {
+//                cursor.close();
+//            }
+//        }
+//        return null;
+//    }
 
-        // Check if the URI is a content URI
-        if ("content".equalsIgnoreCase(uri.getScheme())) {
-            if (DocumentsContract.isDocumentUri(context, uri)) {
-                // Handle document URIs
-                String documentId = DocumentsContract.getDocumentId(uri);
-                if (documentId.startsWith("raw:")) {
-                    path = documentId.replaceFirst("raw:", "");
-                } else {
-                    String[] split = documentId.split(":");
-                    String type = split[0];
-                    if ("primary".equalsIgnoreCase(type)) {
-                        // Primary storage
-                        path = Environment.getExternalStorageDirectory() + "/" + split[1];
-                    } else {
-                        // Handle other types if necessary
-                        path = getFilePathFromContentUri(context, uri);
-                    }
+    // Method to get the absolute file path by copying the file to cache directory
+    public static String getPathFromUri(Context context, Uri uri) {
+        String filePath = null;
+
+        // Get the file's MIME type
+        String mimeType = context.getContentResolver().getType(uri);
+
+        // Extract file name
+        String fileName = getFileName(context, uri);
+        if (fileName != null) {
+            // Copy the file to the cache directory
+            File cacheDir = new File(context.getCacheDir(), fileName);
+            try {
+                InputStream inputStream = context.getContentResolver().openInputStream(uri);
+                if (inputStream != null) {
+                    copyStreamToFile(inputStream, cacheDir);
+                    filePath = cacheDir.getAbsolutePath();
                 }
-            } else {
-                // For other content URIs
-                path = getFilePathFromContentUri(context, uri);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            // Direct file URI
-            path = uri.getPath();
         }
-        return path;
+
+        return filePath;
     }
 
-    private static String getFilePathFromContentUri(Context context, Uri uri) {
-        String[] projection = {MediaStore.Files.FileColumns.DATA};
-        Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
-        if (cursor != null) {
-            try {
-                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA);
-                if (cursor.moveToFirst()) {
-                    return cursor.getString(columnIndex);
-                }
-            } finally {
-                cursor.close();
+    // Helper method to copy InputStream to File
+    private static void copyStreamToFile(InputStream inputStream, File file) throws IOException {
+        try (OutputStream outputStream = new FileOutputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
             }
         }
-        return null;
+    }
+
+    // Helper method to get file name from Uri
+    @SuppressLint("Range")
+    private static String getFileName(Context context, Uri uri) {
+        String fileName = null;
+        if (uri.getScheme().equals("content")) {
+            try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    fileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                }
+            }
+        } else if (uri.getScheme().equals("file")) {
+            fileName = new File(uri.getPath()).getName();
+        }
+        return fileName;
     }
 
 //    public static String readPDFFileAsHexString(String filePath) {

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
@@ -54,6 +55,25 @@ public class SignerActivity extends AppCompatActivity {
         intent.putExtra("hash", base64PublicKey);
         intent.putExtra("privateKey", base64PrivateKey);
         startService(intent);
+
+        // Handle the back button press with the OnBackPressedDispatcher
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Custom back button behavior
+                // Do nothing or add your own logic here
+                // For example, show a toast or close the app
+                // Toast.makeText(MainActivity.this, "Back button pressed!", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(SignerActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+
+            }
+        };
+
+        getOnBackPressedDispatcher().addCallback(this, callback);
+
     }
 
     public void intentToSignerPage2(){

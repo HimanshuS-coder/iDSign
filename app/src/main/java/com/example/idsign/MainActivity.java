@@ -2,13 +2,16 @@ package com.example.idsign;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -16,18 +19,44 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.idsign.Connection.BluetoothPermission;
 import com.example.idsign.Connection.NFC_Utils;
 import com.example.idsign.Connection.StoragePermission;
+import com.example.idsign.data.AppContainer;
+import com.example.idsign.data.DefaultAppContainer;
 
 public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothPermission bluetoothPermission;
     private StoragePermission storagePermission;
+    Button ipButton;
+    EditText ipEditText;
+    public static String ipAddress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        ipButton = findViewById(R.id.ipButton);
+        ipEditText = findViewById(R.id.ipEditText);
+        Button Signer = findViewById(R.id.SignerButton);
+        Button Signee = findViewById(R.id.SigneeButton);
+        Button verifyPage = findViewById(R.id.verifyPage);
+
+        ipButton.setOnClickListener(view -> {
+            String enteredIp = ipEditText.getText().toString();
+            DefaultAppContainer.Companion.setIpAddress(enteredIp);
+
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(ipEditText.getWindowToken(), 0);
+
+            ipEditText.setVisibility(View.INVISIBLE);
+            ipButton.setVisibility(View.INVISIBLE);
+            Signer.setVisibility(View.VISIBLE);
+            Signee.setVisibility(View.VISIBLE);
+            verifyPage.setVisibility(View.VISIBLE);
+
+        });
 
         // Manage NFC
         NfcAdapter adapter = NfcAdapter.getDefaultAdapter(this);
@@ -43,9 +72,7 @@ public class MainActivity extends AppCompatActivity {
         // Manage Storage Permissions
         storagePermission = new StoragePermission(getApplicationContext(), this);
 
-        Button Signer = findViewById(R.id.SignerButton);
-        Button Signee = findViewById(R.id.SigneeButton);
-        Button verifyPage = findViewById(R.id.verifyPage);
+
 
         Signer.setOnClickListener(new View.OnClickListener() {
             @Override

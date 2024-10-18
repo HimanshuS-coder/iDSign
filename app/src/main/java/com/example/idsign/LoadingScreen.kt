@@ -1,8 +1,12 @@
 package com.example.idsign
 
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -19,6 +23,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.idsign.AppViewModelProvider.Factory
 import com.example.idsign.viewModel.NetworkViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class LoadingScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,9 +33,15 @@ class LoadingScreen : ComponentActivity() {
         setContent {
             Loading()
 
-            var intent: Intent = getIntent()
+            val intent: Intent = getIntent()
             val id: String? = intent.getStringExtra("ID")
             val networkViewModel = ViewModelProvider(this, Factory).get(NetworkViewModel::class.java)
+
+            if (!isInternetAvailable(this)) {
+                Toast.makeText(this, "No internet connection", Toast.LENGTH_LONG).show()
+                return@setContent
+            }
+
             val hash by networkViewModel.hash.collectAsStateWithLifecycle()
 
             if (id == "Signer") {
@@ -39,7 +52,13 @@ class LoadingScreen : ComponentActivity() {
 
             LaunchedEffect(hash) {
                 if (hash.isNotEmpty()) {
-                    networkViewModel.getPrivateKey(hash)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        try {
+                            networkViewModel.getPrivateKey(hash)
+                        } catch (e: Exception) {
+                            handleNetworkError(e)
+                        }
+                    }
                 }
             }
 
@@ -63,12 +82,29 @@ class LoadingScreen : ComponentActivity() {
                     startActivity(intent)
                 }
             }
+        }
+    }
 
+    private fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+    }
 
+    private fun handleNetworkError(e: Exception) {
+        when (e) {
+            is java.net.UnknownHostException -> {
+                Toast.makeText(this, "Could not connect to server. Check your network.", Toast.LENGTH_LONG).show()
+            }
+            is java.net.SocketTimeoutException -> {
+                Toast.makeText(this, "Connection timed out. Check if the server is reachable.", Toast.LENGTH_LONG).show()
+            }
+            else -> {
+                Toast.makeText(this, "An error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
-
 
 @Composable
 fun Loading() {

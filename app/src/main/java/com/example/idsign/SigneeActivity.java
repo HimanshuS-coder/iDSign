@@ -11,10 +11,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.idsign.Utilities.MyHostApduService;
 import com.example.idsign.Utilities.PKG_Setup;
 import com.example.idsign.Utilities.Utils;
 import com.example.idsign.recycleView.Task;
@@ -101,6 +103,25 @@ public class SigneeActivity extends AppCompatActivity implements NfcAdapter.Read
         } catch (NoSuchAlgorithmException | IOException a) {
             throw new RuntimeException(a);
         }
+
+        // Handle the back button press with the OnBackPressedDispatcher
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Custom back button behavior
+                // Do nothing or add your own logic here
+                // For example, show a toast or close the app
+                // Toast.makeText(MainActivity.this, "Back button pressed!", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(SigneeActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+
+            }
+        };
+
+        getOnBackPressedDispatcher().addCallback(this, callback);
+
 
         // Handling NFC Reader Mode
         NfcAdapter adapter = NfcAdapter.getDefaultAdapter(this);
