@@ -6,7 +6,7 @@ Step 2) Install IntelliJ Idea IDE
 
 Step 3) Extract the Authenticating.rar file and open the project in IntelliJ idea. After opening the Authenticating file, hit the run button.
 
-Step 4) Now install the app that you want to Test (remember, since the backend is not deployed on a server with public IP, your phone and pc in which the backend is running need to be on the same wifi network).
+Step 4) Now install the app that you want to Test (remember, since the backend is deployed on a server with public IP, your phone and pc in which the backend is running need to be on the same wifi network).
 
 Step 5) In order to find the IPv4 address of the machine in which the server code is running.
 	WINDOWS: open cmd, type ipconfig /all and hit enter. in the wifi section, you can find the IPv4 address.
